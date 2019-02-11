@@ -104,10 +104,22 @@ void GazeboRosOpenniKinect::Load(sensors::SensorPtr _parent, sdf::ElementPtr _sd
     this->point_cloud_cutoff_max_ = _sdf->GetElement("pointCloudCutoffMax")->Get<double>();
 
   // noise
-    if (!_sdf->HasElement("gaussianNoise")) {
+  if (!_sdf->HasElement("gaussianNoise")) {
     this->gaussian_noise_ = 0;
   } else {
     this->gaussian_noise_ = _sdf->GetElement("gaussianNoise")->Get<double>();
+  }
+  
+  // outlier
+  if (!_sdf->HasElement("outlierDistance")) {
+    this->outlier_distance_ = 0;
+    this->outlier_index_ = 0;
+  } else {
+    this->outlier_distance_ = _sdf->GetElement("outlierDistance")->Get<double>();
+    // generate a uniformly distributed random number    
+    std::uniform_int_distribution<> uniform_distribution(1, this->width * this->height);
+    std::mt19937 generator( std::random_device{}() );
+    this->outlier_index_ = uniform_distribution(generator);
   }
 
   load_connection_ = GazeboRosCameraUtils::OnLoad(boost::bind(&GazeboRosOpenniKinect::Advertise, this));
@@ -342,6 +354,11 @@ bool GazeboRosOpenniKinect::FillPointCloudHelper(
       else            yAngle = 0.0;
 
       double depth = toCopyFrom[index++] * ( 1 + gaussianKernel(0, this->gaussian_noise_) ); // + 0.0*this->myParent->GetNearClip();
+
+      // add outlier
+      if (outlier_distance_ != 0.0 && abs(index - outlier_index_) < 2 ) {
+        depth -= outlier_distance_;
+      }
 
       if(depth > this->point_cloud_cutoff_ &&
          depth < this->point_cloud_cutoff_max_)
