@@ -371,7 +371,7 @@ bool GazeboRosOpenniKinect::FillPointCloudHelper(
 
       // add outlier
       if (outlier_magnitude_ != 0.0 && abs(index - outlier_index_) < 2 ) {
-        depth -= outlier_magnitude_;
+        depth *= ( 1 - outlier_magnitude_);
       }
 
       if(depth > this->point_cloud_cutoff_ &&
