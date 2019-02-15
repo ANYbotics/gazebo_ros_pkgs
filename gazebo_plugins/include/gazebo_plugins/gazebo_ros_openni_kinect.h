@@ -137,7 +137,7 @@ namespace gazebo
     }
 
     /// \brief outlier distance in meters from nominal point
-    private: double outlier_distance_;
+    private: double outlier_magnitude_;
 
     /// \brief the index of the point which will become the outlier
     private: int outlier_index_;

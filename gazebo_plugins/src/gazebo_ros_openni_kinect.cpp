@@ -110,16 +110,24 @@ void GazeboRosOpenniKinect::Load(sensors::SensorPtr _parent, sdf::ElementPtr _sd
     this->gaussian_noise_ = _sdf->GetElement("gaussianNoise")->Get<double>();
   }
   
-  // outlier
-  if (!_sdf->HasElement("outlierDistance")) {
-    this->outlier_distance_ = 0;
+  // outlier magnitude
+  if (!_sdf->HasElement("outlierMagnitude")) {
+    this->outlier_magnitude_ = 0;
+  } else {
+    this->outlier_magnitude_ = _sdf->GetElement("outlierMagnitude")->Get<double>();
+  }
+
+  // outlier index
+  if (!_sdf->HasElement("outlierIndex")) {
     this->outlier_index_ = 0;
   } else {
-    this->outlier_distance_ = _sdf->GetElement("outlierDistance")->Get<double>();
-    // generate a uniformly distributed random number    
-    std::uniform_int_distribution<> uniform_distribution(1, this->width * this->height);
-    std::mt19937 generator( std::random_device{}() );
-    this->outlier_index_ = uniform_distribution(generator);
+    this->outlier_index_ = _sdf->GetElement("outlierIndex")->Get<double>();
+  }
+  if (outlier_index_ == 0) {
+  // generate a uniformly distributed random number    
+  std::uniform_int_distribution<> uniform_distribution(1, this->width * this->height);
+  std::mt19937 generator( std::random_device{}() );
+  this->outlier_index_ = uniform_distribution(generator);
   }
 
   load_connection_ = GazeboRosCameraUtils::OnLoad(boost::bind(&GazeboRosOpenniKinect::Advertise, this));
@@ -353,11 +361,16 @@ bool GazeboRosOpenniKinect::FillPointCloudHelper(
       if (cols_arg>1) yAngle = atan2( (double)i - 0.5*(double)(cols_arg-1), fl);
       else            yAngle = 0.0;
 
-      double depth = toCopyFrom[index++] * ( 1 + gaussianKernel(0, this->gaussian_noise_) ); // + 0.0*this->myParent->GetNearClip();
+      double depth = toCopyFrom[index++]; // + 0.0*this->myParent->GetNearClip();
+
+      // add noise
+      if (gaussian_noise_ != 0) {
+        depth *= ( 1 + gaussianKernel(0, this->gaussian_noise_) );
+      }
 
       // add outlier
-      if (outlier_distance_ != 0.0 && abs(index - outlier_index_) < 2 ) {
-        depth -= outlier_distance_;
+      if (outlier_magnitude_ != 0.0 && abs(index - outlier_index_) < 2 ) {
+        depth -= outlier_magnitude_;
       }
 
       if(depth > this->point_cloud_cutoff_ &&
