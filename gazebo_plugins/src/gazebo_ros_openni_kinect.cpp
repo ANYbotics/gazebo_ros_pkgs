@@ -123,9 +123,10 @@ void GazeboRosOpenniKinect::Load(sensors::SensorPtr _parent, sdf::ElementPtr _sd
   } else {
     this->outlier_index_ = _sdf->GetElement("outlierIndex")->Get<double>();
   }
+  int max_index = this->width * this->height;
   if (outlier_index_ == 0) {
   // generate a uniformly distributed random number    
-  std::uniform_int_distribution<> uniform_distribution(1, this->width * this->height);
+  std::uniform_int_distribution<> uniform_distribution(1, max_index);
   std::mt19937 generator( std::random_device{}() );
   this->outlier_index_ = uniform_distribution(generator);
   }
